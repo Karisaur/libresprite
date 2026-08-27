@@ -22,11 +22,38 @@ jobs:
         run: |
           brew install cmake ninja
 
-      - name: Attempt iPadOS CMake configure
+      - name: Download LibArchive
+        run: |
+          curl -L https://github.com/libarchive/libarchive/archive/refs/tags/v3.8.1.tar.gz -o libarchive.tar.gz
+          tar -xzf libarchive.tar.gz
+
+      - name: Build LibArchive for iPadOS
+        run: |
+          cmake -S libarchive-3.8.1 -B libarchive-ios \
+            -G Ninja \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=iphoneos \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=16.0 \
+            -DCMAKE_INSTALL_PREFIX="$PWD/ios-deps" \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DENABLE_TEST=OFF \
+            -DENABLE_OPENSSL=OFF \
+            -DENABLE_LZMA=OFF \
+            -DENABLE_ZSTD=OFF \
+            -DENABLE_BZip2=OFF
+
+          cmake --build libarchive-ios
+          cmake --install libarchive-ios
+
+      - name: Attempt iPadOS LibreSprite configure
         run: |
           cmake -S . -B build-ios \
             -G Ninja \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=16.0
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=16.0 \
+            -DCMAKE_PREFIX_PATH="$PWD/ios-deps" \
+            -DLibArchive_INCLUDE_DIR="$PWD/ios-deps/include" \
+            -DLibArchive_LIBRARY="$PWD/ios-deps/lib/libarchive.a"
